@@ -58,14 +58,18 @@ class TServ3:
         self.ds = None
         self.sensors_list = None
         self.http = None
-        self.prev_results = None
-        self.ema_results = None
         self.mqtt = None
         self.mqtt_config = None
+        self.raw_results = None
+        self.prev_results = None
+        self.ema_results = None
 
     async def http_temperature(self, request):
-        if self.ema_results is not None:
+        type = request.args.get("type", "ema")
+        if type == "ema" and self.ema_results:
             return self.ema_results
+        elif type == "raw" and self.raw_results:
+            return self.raw_results
 
     async def http_api_config(self, request):
         if request.method == 'POST':
@@ -77,6 +81,7 @@ class TServ3:
                 self.sensors_list[sid]['color'] = new_info.get('color')
                 self.sensors_list[sid]['cal'] = new_info.get('cal')
             write_sensors_config(self.sensors_list)
+            self.clear_ema_results()
         return {"time-correction": UNIX_TIME_CORRECTION, "sensors-config": self.sensors_list}
 
     async def http_mqtt_config(self, request):
@@ -183,18 +188,27 @@ class TServ3:
             if len(self.sensors_list) > 0:
                 curr_time = time.time()
                 self.ds.convert_temp()
-                current_result = [curr_time]
+                self.ema_results = [curr_time]
+                self.raw_results = [curr_time]
+                step_results = self.prev_results
+                if not step_results:
+                    step_results = {}
+                self.prev_results = {}
                 for sid, info in self.sensors_list.items():
                     value = self.ds.read_temp(info['addr'])
+                    self.raw_results.append(value)
                     if info.get('cal') is not None:
                         value += info['cal']
                     value = int(value * 100)
-                    if sid in self.prev_results:
-                        value = ((EMA_MUL_CUR * value) + (EMA_MUL_LAST * self.prev_results[sid])) / EMA_COEF
-                    current_result.append((sid, round(value / 100.0, 2)))
+                    if sid in step_results:
+                        value = ((EMA_MUL_CUR * value) + (EMA_MUL_LAST * step_results[sid])) / EMA_COEF
+                    self.ema_results.append((sid, round(value / 100.0, 2)))
                     self.prev_results[sid] = value
-                self.ema_results = current_result
                 await uasyncio.sleep_ms(2000)
+
+    def clear_ema_results(self):
+        self.prev_results = None
+        self.ema_results = None
 
 
 print("Server staring")
