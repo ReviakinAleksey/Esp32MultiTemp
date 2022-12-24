@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Monitor temperature</title>
+  <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@1.5.6/css/pico.classless.min.css">
+  <script src="https://cdn.plot.ly/plotly-2.16.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/handlebars@4.7.7/dist/handlebars.js"></script>
+</head>
+<body>
+<script id="sensors-template" type="text/x-handlebars-template">
+  <form id="update-config-form">
+    <table>
+      <thead>
+      <tr>
+        <th scope="col">#</th>
+        {{#each sensors}}
+        <th scope="col">
+          {{this.sid}}
+          <input type="hidden" name="sid" value="{{this.sid}}">
+        </th>
+        {{/each}}
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+        <th scope="row">Name</th>
+        {{#each sensors}}
+        <th scope="col">
+          <input type="text" name="name" placeholder="Sensor name" value="{{this.name}}">
+        </th>
+        {{/each}}
+      </tr>
+      <tr>
+        <th scope="row">MQT field</th>
+        {{#each sensors}}
+        <th scope="col">
+          <input type="text" name="field" placeholder="MQT field name" value="{{this.field}}">
+        </th>
+        {{/each}}
+      </tr>
+      <tr>
+        <th scope="row">Chart color</th>
+        {{#each sensors}}
+        <th scope="col" style="background-color: {{this.color}};">
+          <input type="text" name="color" placeholder="Sensor chart color" value="{{this.color}}" required>
+        </th>
+        {{/each}}
+      </tr>
+      </tbody>
+      <tfoot>
+      <tr>
+        <th scope="row">Calibration</th>
+        {{#each sensors}}
+        <th scope="col">
+          <input type="text" name="cal" placeholder="Sensor calibration" value="{{this.cal}}">
+        </th>
+        {{/each}}
+      </tr>
+      <tr>
+        <th scope="row">Addr</th>
+        {{#each sensors}}
+        <th scope="col">
+          {{this.add}}
+        </th>
+        {{/each}}
+      </tr>
+      </tfoot>
+    </table>
+  </form>
+</script>
+
+<header>
+</header>
+<main>
+  <h1>Where is data?</h1>
+  <div id="debug-cont">
+
+  </div>
+
+  <div id="chart">
+
+  </div>
+  <div id="sensors-form">
+
+  </div>
+  <div>
+    <button id="update-config-btn" type="button" class="outline" onclick="updateConfigUI()">Update config</button>
+  </div>
+</main>
+<footer>
+</footer>
+<script type="module" src="./src/main.ts"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "ui",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "^4.9.3",
+    "vite": "^4.0.0"
+  },
+  "dependencies": {
+    "@types/handlebars": "^4.1.0",
+    "@types/plotly.js": "^2.12.9",
+    "@types/plotly.js-basic-dist": "^1.54.1"
+  }
+}

@@ -1,0 +1,8 @@
+.idea/
+*.iml
+mqtt_credentials_GCM4OwEWNCMTJiMYAQklIwk.txt
+
+
+microdot-repo/
+ui/dist
+node_modules
