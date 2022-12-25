@@ -7,6 +7,47 @@
   <script src="https://cdn.jsdelivr.net/npm/handlebars@4.7.7/dist/handlebars.js"></script>
 </head>
 <body>
+<script id="broker-template" type="text/x-handlebars-template">
+    <form id="broker-config-form">
+        <h4>Broker</h4>
+        <div class="grid">
+            <label for="broker-host">
+                Host
+                <input type="text" id="broker-host" name="broker_host" placeholder="Host name" value="{{ this.broker_host}}" required>
+            </label>
+
+            <label for="broker-port">
+                Port
+                <input type="number" id="broker-port" name="broker_port" placeholder="Port" value="{{ this.broker_port}}" required>
+            </label>
+
+            <label for="keepalive">
+                Keep Alive
+                <input type="number" id="keepalive" name="keepalive" value="{{ this.keepalive}}" placeholder="Keepalive time" required>
+            </label>
+        </div>
+        <div class="grid">
+            <label for="user">
+                Host
+                <input type="text" id="user" name="user" placeholder="User" value="{{ this.user}}" required>
+            </label>
+            <label for="password">
+                Password
+                <input type="password" id="password" name="password" placeholder="Password" value="{{ this.password}}" required>
+            </label>
+        </div>
+        <div class="grid">
+            <label for="client_name">
+                Client Name
+                <input type="text" id="client_name" name="client_name" placeholder="Client Name" value="{{ this.client_name}}" required>
+            </label>
+            <label for="topic">
+                Topic
+                <input type="text" id="topic" name="topic" placeholder="Topic" value="{{ this.topic}}" required>
+            </label>
+        </div>
+    </form>
+</script>
 <script id="sensors-template" type="text/x-handlebars-template">
   <form id="update-config-form">
     <table>
@@ -80,12 +121,20 @@
   <div id="chart">
 
   </div>
+    <h2>Sensors Config</h2>
   <div id="sensors-form">
 
   </div>
   <div>
     <button id="update-config-btn" type="button" class="outline" onclick="updateConfigUI()">Update config</button>
   </div>
+    <h2>Broker Config</h2>
+    <div id="broker-container">
+
+    </div>
+    <div>
+        <button id="update-broker-btn" type="button" class="outline" onclick="updateBrokerConfig()">Update broker config</button>
+    </div>
 </main>
 <footer>
 </footer>

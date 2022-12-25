@@ -5,24 +5,28 @@ export class UI {
     private debugCont: HTMLDivElement;
     private sensorsCont: HTMLDivElement;
     private sensorsTemplate: HandlebarsTemplateDelegate<any>;
+    private brokerTemplate: HandlebarsTemplateDelegate<any>;
+    private brokerCont: HTMLDivElement;
 
     private currentConfig: IBoardConfig | null = null;
-    private currentMqttConfig: IMqttConfig | null = null;
     private currentTask: Promise<unknown> = Promise.resolve();
+
 
     constructor() {
         this.chartDiv = "chart";
         this.debugCont = document.getElementById("debug-cont") as HTMLDivElement;
         this.sensorsCont = document.getElementById("sensors-form") as HTMLDivElement;
+        this.brokerCont = document.getElementById("broker-container") as HTMLDivElement;
         const sensorsTemplateContent = document.getElementById("sensors-template")!.innerHTML;
         this.sensorsTemplate = Handlebars.compile(sensorsTemplateContent);
+        const brokerTemplateContent = document.getElementById("broker-template")!.innerHTML;
+        this.brokerTemplate = Handlebars.compile(brokerTemplateContent);
     }
 
     public start() {
         this.readMqttConfig()
             .then(
-                (mqttConfig) => {
-                    this.debugCont.innerHTML = JSON.stringify(mqttConfig);
+                () => {
                     return this.readConfig();
                 }
             )
@@ -150,12 +154,12 @@ export class UI {
         return this.runTask(() => {
             return fetch('/api/mqtt_config')
                 .then((response) => response.json())
-                .then((data) => {
-                    this.currentMqttConfig = data;
+                .then((data: IMqttConfig) => {
+                    this.renderBrokerConfigForm(data);
                     return data;
                 })
                 .catch((e) => {
-                    console.error('Can not read config', e)
+                    console.error('Can not Mqtt read config', e)
                 });
         });
     }
@@ -190,6 +194,10 @@ export class UI {
                 }
             });
         this.sensorsCont.innerHTML = this.sensorsTemplate({sensors});
+    }
+
+    private renderBrokerConfigForm(brokerConfig: IMqttConfig) {
+        this.brokerCont.innerHTML = this.brokerTemplate((brokerConfig));
     }
 
 }
