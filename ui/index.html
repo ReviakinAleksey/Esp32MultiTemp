@@ -1,133 +1,134 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>Monitor temperature</title>
-  <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@1.5.6/css/pico.classless.min.css">
-  <script src="https://cdn.plot.ly/plotly-2.16.1.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/handlebars@4.7.7/dist/handlebars.js"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Monitor temperature</title>
+    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@1.5.6/css/pico.min.css">
+    <script src="https://cdn.plot.ly/plotly-2.16.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/handlebars@4.7.7/dist/handlebars.js"></script>
 </head>
 <body>
 <script id="broker-template" type="text/x-handlebars-template">
     <form id="broker-config-form">
         <h4>Broker</h4>
         <div class="grid">
-            <label for="broker-host">
+            <label for="broker_host">
                 Host
-                <input type="text" id="broker-host" name="broker_host" placeholder="Host name" value="{{ this.broker_host}}" required>
+                <input type="text" id="broker_host" name="broker_host" placeholder="Host name" value="{{ this.broker_host }}" required>
             </label>
 
-            <label for="broker-port">
+            <label for="broker_port">
                 Port
-                <input type="number" id="broker-port" name="broker_port" placeholder="Port" value="{{ this.broker_port}}" required>
+                <input type="number" id="broker_port" name="broker_port" placeholder="Port" value="{{ this.broker_port }}" required>
             </label>
 
             <label for="keepalive">
                 Keep Alive
-                <input type="number" id="keepalive" name="keepalive" value="{{ this.keepalive}}" placeholder="Keepalive time" required>
+                <input type="number" id="keepalive" name="keepalive" value="{{ this.keepalive }}" placeholder="Keepalive time" required>
             </label>
         </div>
         <div class="grid">
             <label for="user">
                 Host
-                <input type="text" id="user" name="user" placeholder="User" value="{{ this.user}}" required>
+                <input type="text" id="user" name="user" placeholder="User" value="{{ this.user }}" required>
             </label>
             <label for="password">
                 Password
-                <input type="password" id="password" name="password" placeholder="Password" value="{{ this.password}}" required>
+                <input type="password" id="password" name="password" placeholder="Password" value="{{ this.password }}" required>
             </label>
         </div>
         <div class="grid">
             <label for="client_name">
                 Client Name
-                <input type="text" id="client_name" name="client_name" placeholder="Client Name" value="{{ this.client_name}}" required>
+                <input type="text" id="client_name" name="client_name" placeholder="Client Name" value="{{ this.client_name }}" required>
             </label>
             <label for="topic">
                 Topic
-                <input type="text" id="topic" name="topic" placeholder="Topic" value="{{ this.topic}}" required>
+                <input type="text" id="topic" name="topic" placeholder="Topic" value="{{ this.topic }}" required>
             </label>
         </div>
     </form>
 </script>
 <script id="sensors-template" type="text/x-handlebars-template">
-  <form id="update-config-form">
-    <table>
-      <thead>
-      <tr>
-        <th scope="col">#</th>
-        {{#each sensors}}
-        <th scope="col">
-          {{this.sid}}
-          <input type="hidden" name="sid" value="{{this.sid}}">
-        </th>
-        {{/each}}
-      </tr>
-      </thead>
-      <tbody>
-      <tr>
-        <th scope="row">Name</th>
-        {{#each sensors}}
-        <th scope="col">
-          <input type="text" name="name" placeholder="Sensor name" value="{{this.name}}">
-        </th>
-        {{/each}}
-      </tr>
-      <tr>
-        <th scope="row">MQT field</th>
-        {{#each sensors}}
-        <th scope="col">
-          <input type="text" name="field" placeholder="MQT field name" value="{{this.field}}">
-        </th>
-        {{/each}}
-      </tr>
-      <tr>
-        <th scope="row">Chart color</th>
-        {{#each sensors}}
-        <th scope="col" style="background-color: {{this.color}};">
-          <input type="text" name="color" placeholder="Sensor chart color" value="{{this.color}}" required>
-        </th>
-        {{/each}}
-      </tr>
-      </tbody>
-      <tfoot>
-      <tr>
-        <th scope="row">Calibration</th>
-        {{#each sensors}}
-        <th scope="col">
-          <input type="text" name="cal" placeholder="Sensor calibration" value="{{this.cal}}">
-        </th>
-        {{/each}}
-      </tr>
-      <tr>
-        <th scope="row">Addr</th>
-        {{#each sensors}}
-        <th scope="col">
-          {{this.add}}
-        </th>
-        {{/each}}
-      </tr>
-      </tfoot>
-    </table>
-  </form>
+    <form id="update-config-form">
+        <table>
+            <thead>
+            <tr>
+                <th scope="col">#</th>
+                {{#each sensors}}
+                <th scope="col">
+                    {{ this.sid }}
+                    <input type="hidden" name="sid" value="{{ this.sid }}">
+                </th>
+                {{/each}}
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <th scope="row">Name</th>
+                {{#each sensors}}
+                <th scope="col">
+                    <input type="text" name="name" placeholder="Sensor name" value="{{ this.name }}">
+                </th>
+                {{/each}}
+            </tr>
+            <tr>
+                <th scope="row">MQT field</th>
+                {{#each sensors}}
+                <th scope="col">
+                    <input type="text" name="field" placeholder="MQT field name" value="{{ this.field }}">
+                </th>
+                {{/each}}
+            </tr>
+            <tr>
+                <th scope="row">Chart color</th>
+                {{#each sensors}}
+                <th scope="col" style="background-color: {{ this.color }};">
+                    <input type="text" name="color" placeholder="Sensor chart color" value="{{ this.color }}" required>
+                </th>
+                {{/each}}
+            </tr>
+            </tbody>
+            <tfoot>
+            <tr>
+                <th scope="row">Calibration</th>
+                {{#each sensors}}
+                <th scope="col">
+                    <input type="text" name="cal" placeholder="Sensor calibration" value="{{ this.cal }}">
+                </th>
+                {{/each}}
+            </tr>
+            <tr>
+                <th scope="row">Addr</th>
+                {{#each sensors}}
+                <th scope="col">
+                    {{ this.add }}
+                </th>
+                {{/each}}
+            </tr>
+            </tfoot>
+        </table>
+    </form>
 </script>
 
-<header>
-</header>
-<main>
-  <h1>Where is data?</h1>
-  <div id="debug-cont">
+<div class="container">
+    <button type="button" class="outline">Show Calibration Data</button>
+    <h1>Where is data?</h1>
+    <div id="debug-cont">
 
-  </div>
+    </div>
 
-  <div id="chart">
+    <div id="chart">
 
-  </div>
+    </div>
     <h2>Sensors Config</h2>
-  <div id="sensors-form">
+    <div id="sensors-form">
 
-  </div>
-  <div>
-    <button id="update-config-btn" type="button" class="outline" onclick="updateConfigUI()">Update config</button>
-  </div>
+    </div>
+    <div>
+        <button id="update-config-btn" type="button" class="outline" onclick="updateConfigUI()">Update config</button>
+    </div>
     <h2>Broker Config</h2>
     <div id="broker-container">
 
@@ -135,9 +136,7 @@
     <div>
         <button id="update-broker-btn" type="button" class="outline" onclick="updateBrokerConfig()">Update broker config</button>
     </div>
-</main>
-<footer>
-</footer>
+</div>
 <script type="module" src="./src/main.ts"></script>
 </body>
 </html>

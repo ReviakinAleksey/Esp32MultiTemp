@@ -15,6 +15,7 @@ export class UI {
     constructor() {
         this.chartDiv = "chart";
         this.debugCont = document.getElementById("debug-cont") as HTMLDivElement;
+        this.debugCont.innerHTML = "";
         this.sensorsCont = document.getElementById("sensors-form") as HTMLDivElement;
         this.brokerCont = document.getElementById("broker-container") as HTMLDivElement;
         const sensorsTemplateContent = document.getElementById("sensors-template")!.innerHTML;
@@ -55,6 +56,37 @@ export class UI {
             });
     }
 
+    public updateBrokerConfig() {
+        const form = document.getElementById("broker-config-form") as HTMLFormElement;
+        const data = new FormData(form);
+        const brokerConfig: IMqttConfig = {
+            broker_host: data.get("broker_host") as string,
+            broker_port: parseInt(data.get("broker_port") as string),
+            keepalive: parseInt(data.get("keepalive") as string),
+            topic: data.get("topic") as string,
+            client_name: data.get("client_name") as string,
+            user: data.get("user") as string,
+            password: data.get("password") as string,
+        };
+        return this.runTask(() => {
+                return fetch('/api/mqtt_config', {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(brokerConfig)
+                    }
+                )
+                    .then((response) => response.json())
+                    .then((data: IMqttConfig) => {
+                        this.renderBrokerConfigForm(data);
+                        return data;
+                    });
+            }
+        );
+    }
+
     public updateConfigUI() {
         if (!this.currentConfig) {
             throw new Error('Config required!');
@@ -67,7 +99,6 @@ export class UI {
         const formFields: string[] = data.getAll('field') as string[];
         const formColors: string[] = data.getAll('color') as string[];
         const formCals: string[] = data.getAll('cal') as string[];
-        console.log({sids, formNames, formFields, formColors, formCals});
 
         const nextConfig: ISensorsHash = JSON.parse(JSON.stringify(this.currentConfig["sensors-config"]));
         sids.forEach((sid, formIndex) => {
