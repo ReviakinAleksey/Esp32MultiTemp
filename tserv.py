@@ -196,7 +196,7 @@ class TServ3:
                 self.prev_results = {}
                 for sid, info in self.sensors_list.items():
                     value = self.ds.read_temp(info['addr'])
-                    self.raw_results.append(value)
+                    self.raw_results.append((sid, value))
                     if info.get('cal') is not None:
                         value += info['cal']
                     value = int(value * 100)

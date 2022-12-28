@@ -1,8 +1,10 @@
-import {type extendTraces, newPlot} from 'plotly.js'
+import {type extendTraces, newPlot, purge, update} from 'plotly.js'
 
 export const Plotly: {
     newPlot: typeof newPlot,
-    extendTraces: typeof extendTraces
+    extendTraces: typeof extendTraces,
+    update: typeof update,
+    purge: typeof purge
 } = window['Plotly'];
 
 

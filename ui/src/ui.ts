@@ -1,4 +1,5 @@
 import {IBoardConfig, IMqttConfig, ISensorsHash, Plotly} from "./types";
+import {PlotData} from "plotly.js";
 
 export class UI {
     private chartDiv: string;
@@ -7,21 +8,26 @@ export class UI {
     private sensorsTemplate: HandlebarsTemplateDelegate<any>;
     private brokerTemplate: HandlebarsTemplateDelegate<any>;
     private brokerCont: HTMLDivElement;
+    private viewSwitchButton: HTMLButtonElement;
 
     private currentConfig: IBoardConfig | null = null;
     private currentTask: Promise<unknown> = Promise.resolve();
 
+    private viewState: "EMA" | "CALIBRATION" = "EMA";
 
     constructor() {
         this.chartDiv = "chart";
         this.debugCont = document.getElementById("debug-cont") as HTMLDivElement;
         this.debugCont.innerHTML = "";
+        this.viewSwitchButton = document.getElementById("view-switch-btn") as HTMLButtonElement;
         this.sensorsCont = document.getElementById("sensors-form") as HTMLDivElement;
         this.brokerCont = document.getElementById("broker-container") as HTMLDivElement;
         const sensorsTemplateContent = document.getElementById("sensors-template")!.innerHTML;
         this.sensorsTemplate = Handlebars.compile(sensorsTemplateContent);
         const brokerTemplateContent = document.getElementById("broker-template")!.innerHTML;
         this.brokerTemplate = Handlebars.compile(brokerTemplateContent);
+
+        this.viewSwitchButton.onclick = () => this.switchView();
     }
 
     public start() {
@@ -35,25 +41,11 @@ export class UI {
                 if (!this.currentConfig) {
                     throw new Error('Config required!');
                 }
-                const sensorsConfig = this.currentConfig['sensors-config'];
-                const entries = Object.entries(sensorsConfig);
-                const plotlyLines = [];
-                for (let charIdx = 0; charIdx < entries.length; charIdx++) {
-                    const [, sensorConfig] = entries[charIdx];
-                    const lineColor = sensorConfig['color'] ?? this.randomColor(charIdx);
-                    sensorConfig['color'] = lineColor;
-                    sensorConfig['chartInd'] = charIdx;
-                    plotlyLines.push({
-                        x: [],
-                        y: [],
-                        mode: 'lines',
-                        line: {color: lineColor}
-                    });
-                }
-                Plotly.newPlot(this.chartDiv, plotlyLines);
-                this.renderSensorsConfigForm(sensorsConfig);
-                return this.startTemperatureRead();
-            });
+                this.renderSensorsConfigForm(this.currentConfig['sensors-config']);
+
+                return this.createGraph(this.currentConfig['sensors-config']);
+
+            }).then(() => this.startTemperatureRead());
     }
 
     public updateBrokerConfig() {
@@ -139,7 +131,9 @@ export class UI {
 
     private startTemperatureRead() {
         return this.runTask(() => {
-            return fetch('/api/temperature')
+            const sp = new URLSearchParams();
+            sp.set("type", this.viewState === "EMA" ? "ema" : "raw");
+            return fetch(`/api/temperature?${sp.toString()}`)
                 .then((response) => response.json())
                 .then((data) => {
                     if (!this.currentConfig) {
@@ -231,4 +225,66 @@ export class UI {
         this.brokerCont.innerHTML = this.brokerTemplate((brokerConfig));
     }
 
+    private switchView() {
+        this.runTask(() => {
+            if (!this.currentConfig) {
+                return Promise.resolve();
+            }
+            this.viewState = this.viewState === "EMA" ? "CALIBRATION" : "EMA";
+            switch (this.viewState) {
+                case "EMA":
+                    this.viewSwitchButton.innerHTML = "Show Calibration Data";
+                    this.viewSwitchButton.classList.remove("secondary");
+                    break;
+                case "CALIBRATION":
+                    this.viewSwitchButton.innerHTML = "Show EMA Data";
+                    this.viewSwitchButton.classList.add("secondary");
+                    break;
+            }
+
+            Plotly.purge(this.chartDiv);
+            return this.createGraph(this.currentConfig['sensors-config']);
+        });
+    }
+
+
+    private createGraph(sensorsConfig: ISensorsHash): Promise<void> {
+        const entries = Object.entries(sensorsConfig);
+        const plotlyLines = [];
+        for (let charIdx = 0; charIdx < entries.length; charIdx++) {
+            const [, sensorConfig] = entries[charIdx];
+            const lineColor = sensorConfig['color'] ?? this.randomColor(charIdx);
+            sensorConfig['color'] = lineColor;
+            sensorConfig['chartInd'] = charIdx;
+            plotlyLines.push({
+                x: [],
+                y: [],
+                mode: 'lines',
+                line: {color: lineColor}
+            });
+        }
+        return Plotly.newPlot(this.chartDiv, plotlyLines, {dragmode: 'select'})
+            .then((pe) => {
+                console.log('pppp', pe, pe.on);
+                pe.on("plotly_selected", (data) => {
+                    if (!data.range) {
+                        return;
+                    }
+                    console.log("I plotly_selecting", data);
+                    const [min, max] = (data.range.x as unknown as string[]).map((ds: string) => new Date(ds));
+                    console.log('Min', min, max);
+                    const currentData = (pe as any).data as PlotData[];
+                    console.log('Current data', currentData);
+                    currentData.forEach((d) => {
+                        const dx: Date[] = d.x as Date[];
+                        const dy: number[] = d.y as number[]
+                        const filtered = dx.map((date, i) => ({date, val: dy[i]}))
+                            .filter(({date}) => {
+                                return date >= min && date <= max;
+                            });
+                        console.log('filtered', filtered);
+                    })
+                });
+            });
+    }
 }
