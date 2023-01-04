@@ -7,8 +7,11 @@ export class UI {
     private sensorsCont: HTMLDivElement;
     private sensorsTemplate: HandlebarsTemplateDelegate<any>;
     private brokerTemplate: HandlebarsTemplateDelegate<any>;
+
+    private calibrationTemplate: HandlebarsTemplateDelegate<any>;
     private brokerCont: HTMLDivElement;
     private viewSwitchButton: HTMLButtonElement;
+    private calibrationDialog: HTMLDialogElement;
 
     private currentConfig: IBoardConfig | null = null;
     private currentTask: Promise<unknown> = Promise.resolve();
@@ -22,10 +25,12 @@ export class UI {
         this.viewSwitchButton = document.getElementById("view-switch-btn") as HTMLButtonElement;
         this.sensorsCont = document.getElementById("sensors-form") as HTMLDivElement;
         this.brokerCont = document.getElementById("broker-container") as HTMLDivElement;
+        this.calibrationDialog = document.getElementById("calibration-dialog") as HTMLDialogElement;
         const sensorsTemplateContent = document.getElementById("sensors-template")!.innerHTML;
         this.sensorsTemplate = Handlebars.compile(sensorsTemplateContent);
         const brokerTemplateContent = document.getElementById("broker-template")!.innerHTML;
         this.brokerTemplate = Handlebars.compile(brokerTemplateContent);
+        this.calibrationTemplate = Handlebars.compile(document.getElementById("calibration-template")!.innerHTML)
 
         this.viewSwitchButton.onclick = () => this.switchView();
     }
@@ -94,39 +99,12 @@ export class UI {
 
         const nextConfig: ISensorsHash = JSON.parse(JSON.stringify(this.currentConfig["sensors-config"]));
         sids.forEach((sid, formIndex) => {
-            nextConfig[sid].addr = '';
-            nextConfig[sid].add_str = '';
             nextConfig[sid].name = formNames[formIndex];
             nextConfig[sid].field = formFields[formIndex];
             nextConfig[sid].color = formColors[formIndex];
             nextConfig[sid].cal = parseFloat(formCals[formIndex]);
         });
-        return this.runTask(() => {
-            return fetch('/api/config', {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(nextConfig)
-            })
-                .then((response) => response.json())
-                .then((data: IBoardConfig) => {
-                    const oldConfig = this.currentConfig?.["sensors-config"] ?? {};
-                    Object.entries(data["sensors-config"]).forEach(([k, c]) => {
-                        c.chartInd = oldConfig[k]?.chartInd;
-                    })
-                    this.currentConfig = data;
-                    if (this.currentConfig) {
-                        Object.entries(this.currentConfig["sensors-config"])
-                    }
-                    this.renderSensorsConfigForm(data["sensors-config"]);
-                    return data;
-                })
-                .catch((e) => {
-                    console.error('Can not read config', e)
-                });
-        });
+        return this.updateConfigInternal(nextConfig);
     }
 
     private startTemperatureRead() {
@@ -226,7 +204,7 @@ export class UI {
     }
 
     private switchView() {
-        this.runTask(() => {
+        return this.runTask(() => {
             if (!this.currentConfig) {
                 return Promise.resolve();
             }
@@ -244,6 +222,39 @@ export class UI {
 
             Plotly.purge(this.chartDiv);
             return this.createGraph(this.currentConfig['sensors-config']);
+        });
+    }
+
+    private updateConfigInternal(nextConfig: ISensorsHash) {
+        Object.values(nextConfig).forEach((v) => {
+            v.addr = '';
+            v.add_str = '';
+        });
+        return this.runTask(() => {
+            return fetch('/api/config', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(nextConfig)
+            })
+                .then((response) => response.json())
+                .then((data: IBoardConfig) => {
+                    const oldConfig = this.currentConfig?.["sensors-config"] ?? {};
+                    Object.entries(data["sensors-config"]).forEach(([k, c]) => {
+                        c.chartInd = oldConfig[k]?.chartInd;
+                    })
+                    this.currentConfig = data;
+                    if (this.currentConfig) {
+                        Object.entries(this.currentConfig["sensors-config"])
+                    }
+                    this.renderSensorsConfigForm(data["sensors-config"]);
+                    return data;
+                })
+                .catch((e) => {
+                    console.error('Can not read config', e)
+                });
         });
     }
 
@@ -265,25 +276,57 @@ export class UI {
         }
         return Plotly.newPlot(this.chartDiv, plotlyLines, {dragmode: 'select'})
             .then((pe) => {
-                console.log('pppp', pe, pe.on);
                 pe.on("plotly_selected", (data) => {
-                    if (!data.range) {
+                    if (!(data?.range) || !this.currentConfig) {
                         return;
                     }
-                    console.log("I plotly_selecting", data);
+                    const oldConfig = this.currentConfig["sensors-config"];
                     const [min, max] = (data.range.x as unknown as string[]).map((ds: string) => new Date(ds));
-                    console.log('Min', min, max);
+
                     const currentData = (pe as any).data as PlotData[];
-                    console.log('Current data', currentData);
-                    currentData.forEach((d) => {
+                    let allValues: number[] = [];
+                    const indexMeans: Map<number, number> = new Map<number, number>();
+                    currentData.forEach((d, index) => {
                         const dx: Date[] = d.x as Date[];
                         const dy: number[] = d.y as number[]
-                        const filtered = dx.map((date, i) => ({date, val: dy[i]}))
+                        const sorted = dx.map((date, i) => ({date, val: dy[i]}))
                             .filter(({date}) => {
                                 return date >= min && date <= max;
+                            })
+                            .map(({val}) => val)
+                            .sort();
+                        allValues.push(...sorted);
+                        const indexMean = sorted[Math.trunc(sorted.length / 2)];
+                        indexMeans.set(index, indexMean);
+                    });
+                    allValues = allValues.sort();
+                    const globalMean = allValues[Math.trunc(allValues.length / 2)];
+                    const sensorCalibrations: Array<{ value: number, color?: string, sid: string }> = [];
+                    indexMeans.forEach((indexMean, chartInd) => {
+                        const configData = Object.entries(oldConfig).find(([, v]) => {
+                            return v.chartInd == chartInd;
+                        });
+                        if (configData) {
+                            const value = parseFloat((globalMean - indexMean).toFixed(2));
+                            sensorCalibrations.push({value, color: configData[1].color, sid: configData[0]});
+                        }
+                    });
+
+                    this.calibrationDialog.innerHTML = this.calibrationTemplate(({sensors: sensorCalibrations}));
+                    this.calibrationDialog.showModal();
+                    this.calibrationDialog.onclose = () => {
+                        if (this.calibrationDialog.returnValue === "ok") {
+                            const nextConfig: ISensorsHash = JSON.parse(JSON.stringify(oldConfig));
+                            Object.entries(nextConfig).forEach(([sid, sc]) => {
+                                const newCalibration = sensorCalibrations.find((s) => s.sid == sid)?.value;
+                                if (newCalibration != null) {
+                                    sc.cal = newCalibration;
+                                }
                             });
-                        console.log('filtered', filtered);
-                    })
+                            this.updateConfigInternal(nextConfig)
+                                .then(() => this.switchView());
+                        }
+                    };
                 });
             });
     }

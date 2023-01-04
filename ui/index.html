@@ -112,13 +112,42 @@
     </form>
 </script>
 
+<script id="calibration-template" type="text/x-handlebars-template">
+    <article>
+        <h3>Save automatic calibration values?</h3>
+        <table role="grid">
+            <table>
+                <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Calibration</th>
+                </tr>
+                </thead>
+                <tbody>
+                {{#each sensors}}
+                <tr>
+                    <th scope="row"  style="background-color: {{ this.color }};">{{ this.sid }}</th>
+                    <td>{{ this.value }}</td>
+                </tr>
+                {{/each}}
+                </tbody>
+            </table>
+        </table>
+        <footer>
+            <form method="dialog">
+                <button value="cancel" class="secondary">Cancel</button>
+                <button value="ok">Confirm</button>
+            </form>
+        </footer>
+    </article>
+</script>
+
 <div class="container">
-    <button type="button" class="outline" id="view-switch-btn">Show Calibration Data</button>
     <h1>Where is data?</h1>
     <div id="debug-cont">
 
     </div>
-
+    <button type="button" class="outline" id="view-switch-btn">Show Calibration Data</button>
     <div id="chart">
 
     </div>
@@ -137,6 +166,9 @@
         <button id="update-broker-btn" type="button" class="outline" onclick="updateBrokerConfig()">Update broker config</button>
     </div>
 </div>
+
+<dialog id="calibration-dialog">
+</dialog>
 <script type="module" src="./src/main.ts"></script>
 </body>
 </html>
