@@ -165,7 +165,7 @@ class TServ3:
 
     async def publish_mqt(self):
         while True:
-            if self.mqtt is not None and len(self.ema_results):
+            if self.mqtt is not None and self.ema_results is not None and len(self.ema_results):
                 last_result = self.ema_results
                 topic_data = []
                 for idx, s_results in enumerate(last_result):
