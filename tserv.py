@@ -1,4 +1,5 @@
 import gc
+import os
 import time
 
 import ds18x20
@@ -9,7 +10,7 @@ import onewire
 import uasyncio
 from umqtt.simple import MQTTClient
 
-from app_config import write_sensors_config, read_sensors_config, write_mqtt_config, read_wifi_config, read_mqtt_config
+from app_config import write_sensors_config, read_sensors_config, write_mqtt_config, read_wifi_config, write_wifi_config, read_mqtt_config
 from microdot_asyncio import Microdot, send_file
 
 UNIX_TIME_CORRECTION = 946684800
@@ -18,7 +19,9 @@ EMA_COEF = 31
 EMA_MUL_CUR = 2
 EMA_MUL_LAST = 29
 
-wifi_config = read_wifi_config("home")
+write_wifi_config({"ssid": "Derevnya", "password": "giga net"}, "derenya")
+wifi_config = read_wifi_config("derenya")
+# wifi_config = read_wifi_config("home")
 # wifi_config = read_wifi_config("work")
 if not wifi_config:
     print("WIFI config error")
@@ -53,6 +56,12 @@ def rom_addr(ba):
     return addr
 
 
+def file_exists(path_to_file):
+    try:
+        return (os.stat(path_to_file)[0] & 0x4000) == 0
+    except OSError:
+        return False
+
 class TServ3:
     def __init__(self):
         self.ds = None
@@ -66,9 +75,9 @@ class TServ3:
 
     async def http_temperature(self, request):
         type = request.args.get("type", "ema")
-        if type == "ema" and self.ema_results:
+        if type == "ema" and self.ema_results is not None:
             return self.ema_results
-        elif type == "raw" and self.raw_results:
+        elif type == "raw" and self.raw_results is not None:
             return self.raw_results
 
     async def http_api_config(self, request):
@@ -93,10 +102,11 @@ class TServ3:
         return self.mqtt_config
 
     async def http_api_static(self, request, path):
-        if path == 'main.js':
-            return send_file('/files_temp_srv/main.js')
+        resource_file = '/ui_temp/{}'.format(path)
+        if file_exists(resource_file):
+            return send_file(resource_file)
         else:
-            return send_file('/files_temp_srv/index.html')
+            return send_file('/ui_temp/index.html')
 
     def start(self):
         self.http = Microdot()
