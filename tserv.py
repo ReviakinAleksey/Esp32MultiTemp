@@ -15,7 +15,9 @@ from microdot_asyncio import Microdot, send_file
 import display
 import st7789
 
-WIFI_PROFILE = "derenya"
+# WIFI_PROFILE = "derenya"
+# WIFI_PROFILE = "home"
+WIFI_PROFILE = "work"
 
 UNIX_TIME_CORRECTION = 946684800
 
