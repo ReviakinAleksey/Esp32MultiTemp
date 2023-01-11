@@ -276,6 +276,9 @@ export class UI {
         }
         return Plotly.newPlot(this.chartDiv, plotlyLines, {dragmode: 'select'})
             .then((pe) => {
+                if (this.viewState !== 'CALIBRATION'){
+                    return;
+                }
                 pe.on("plotly_selected", (data) => {
                     if (!(data?.range) || !this.currentConfig) {
                         return;
