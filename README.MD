@@ -8,6 +8,7 @@ Send metrics do MQTT broker.
 1. Enter `ui/temperature`
 2. Run `npm install` (for first time or if dependencies changes)
 3. Start dev server `ESP32_IP=10.10.11.12 npm run dev` (where 10.10.11.12 is IP of ESP32 board running [tserv.py](tserv.py) code)
+Same for Wifi Manager UI in [ui/wfmngr](ui/wfmngr) folder
 
 ## Compiling py code to mpy (optimized for board)
 1. `pip install mpy-cross`
