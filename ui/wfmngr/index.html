@@ -7,8 +7,29 @@
 </head>
 <body>
 <main class="container">
-    <h1>Hello, world!</h1>
+    <div id="content-outlet"></div>
 </main>
+
+<script id="networks-template" type="text/x-handlebars-template">
+    <div class="grid">
+        <div>SSID</div>
+        <div>Signal</div>
+        <div>Security</div>
+        <div>Hidden</div>
+    </div>
+    {{#each this}}
+    <div class="grid">
+        <div>{{ this.ssid }}</div>
+        <div style="color: {{ this.rssiColor }}">{{ this.rssi }}📶</div>
+        <div>{{ this.securityValue }}</div>
+        <div>
+            {{#if this.hidden}}
+            👻
+            {{/if}}
+        </div>
+    </div>
+    {{/each}}
+</script>
 <script type="module" src="./src/main.ts"></script>
 </body>
 </html>

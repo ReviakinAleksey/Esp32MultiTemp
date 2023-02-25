@@ -10,14 +10,21 @@ from microdot_asyncio import Microdot
 
 AP_NAME = "ESP-AP"
 
+DEV_MODE = True
+
 display.fill_bg(st7789.RED)
 display.write_text("Initializing", 1, 0, st7789.WHITE)
 display.write_text("WIFI", 1, 1, st7789.WHITE)
 
-ap = network.WLAN(network.AP_IF)  # create access-point interface
-ap.config(ssid=AP_NAME)  # set the SSID of the access point
-ap.config(max_clients=10)  # set how many clients can connect to the network
-ap.active(True)  # activate the interface
+if DEV_MODE:
+    ap = network.WLAN(network.STA_IF)
+    ap.active(True)
+    ap.connect("Area 51C", "giga ukr")
+else:
+    ap = network.WLAN(network.AP_IF)  # create access-point interface
+    ap.config(ssid=AP_NAME)  # set the SSID of the access point
+    ap.config(max_clients=10)  # set how many clients can connect to the network
+    ap.active(True)  # activate the interface
 
 time.sleep(5)  # for some reason call ifconfig without pause crashes app
 ap_ip = ap.ifconfig()[0]
@@ -50,13 +57,18 @@ class WifiManager:
         while True:
             gc.collect()
             # create station interface
-            self.wlan.active(False)
-            self.wlan.active(True)
-            scan_result = self.wlan.scan()
-            self.wlan.active(False)
+            if DEV_MODE:
+                scan_result = self.wlan.scan()
+            else:
+                self.wlan.active(False)
+                self.wlan.active(True)
+                scan_result = self.wlan.scan()
+                self.wlan.active(False)
             rsp = []
             for item in scan_result:
-                rsp.append({"ssid": item[0], "rssi": item[3], "security": item[4]})
+                (ssid, bssid, channel, rssi, security, hidden) = item
+                bssid = "{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}".format(*bssid)
+                rsp.append({"ssid": ssid, "bssid": bssid, "rssi": rssi, "security": security, "hidden": hidden})
             display.write_text("Found {} WIFI networks".format(len(rsp)), 1, 3, st7789.WHITE)
             self.networks = rsp
             gc.collect()
