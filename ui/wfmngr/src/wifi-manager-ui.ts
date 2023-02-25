@@ -28,8 +28,31 @@ export class WifiManagerUi {
         this.networksTemplate = Handlebars.compile(UiUtils.findByIdStrict("networks-template").innerHTML);
     }
 
-    public connect(data: unknown, security: unknown) {
-        console.log("Connect", "|" + data + "|", security);
+    public connect(ssid: unknown, security: unknown) {
+        let password: string | undefined = undefined;
+        if (security != 0) {
+            const promtResult = window.prompt("Please enter WIFI password");
+            password = promtResult ? promtResult : undefined;
+        }
+        const connectData = {ssid, password};
+
+        return this.runTask(() => {
+                return fetch('/api/connect', {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(connectData)
+                    }
+                )
+                    .then((response) => response.json())
+                    .then((data) => {
+                        console.log("OMF", data);
+                        return data;
+                    });
+            }
+        );
     }
 
     public start() {

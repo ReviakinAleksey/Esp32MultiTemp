@@ -30,7 +30,7 @@ time.sleep(5)  # for some reason call ifconfig without pause crashes app
 ap_ip = ap.ifconfig()[0]
 
 display.fill_bg(st7789.BLUE)
-display.write_text("Started", 1, 0, st7789.WHITE)
+display.write_text("Started config mode", 1, 0, st7789.WHITE)
 display.write_text("WIFI SSID: {}".format(AP_NAME), 1, 1, st7789.WHITE)
 display.write_text("Server IP: {}".format(ap_ip), 1, 2, st7789.WHITE)
 
@@ -41,13 +41,28 @@ class WifiManager:
         self.wlan = None
         self.networks = []
 
-    def http_networks(self, request):
+    async def http_networks(self, request):
         return self.networks
+
+    async def http_connect(self, request):
+        data = request.json
+        connected = False
+        if DEV_MODE:
+            ap.connect(data["ssid"], data.get("password"))
+            time.sleep(2)
+            connected = ap.isconnected()
+        else:
+            self.wlan.active(False)
+            self.wlan.active(True)
+            # TODO: Check connection
+            self.wlan.active(False)
+        return {"connected": connected}
 
     def start(self):
         self.wlan = network.WLAN(network.STA_IF)
         self.http = Microdot()
         self.http.route("/api/networks")(self.http_networks)
+        self.http.route("/api/connect", methods=['POST'])(self.http_connect)
 
     async def main_loop(self):
         uasyncio.create_task(self.wifi_loop())
