@@ -2,7 +2,15 @@ import {INetworkItem, WifiSecurity} from "./types";
 import {UiUtils} from "./utils";
 import * as Handlebars from "handlebars";
 
-interface UINetworkItem extends INetworkItem{
+const WifiLevel = {
+    GOOD: 0,
+    NORMAL: 1,
+    BAD: 2,
+    UNUSABLE: 3
+}
+
+interface UINetworkItem extends INetworkItem {
+    level: number,
     securityValue: string;
     rssiColor: string;
 }
@@ -20,33 +28,20 @@ export class WifiManagerUi {
         this.networksTemplate = Handlebars.compile(UiUtils.findByIdStrict("networks-template").innerHTML);
     }
 
-    public start() {
-        console.log('Starting');
-        setInterval(() => this.readNetworkList(), 500);
+    public connect(data: unknown, security: unknown) {
+        console.log("Connect", "|" + data + "|", security);
     }
 
-    private renderNetworks(newNetworks: INetworkItem[]) {
-        this.runTask(() => {
-            const newUiItems = newNetworks.map((n) => {
-                const securityValue = WifiSecurity[n.security];
-                let rssiColor: string;
-                if (n.rssi > -67) {
-                    rssiColor = "green";
-                } else if (n.rssi > -79) {
-                    rssiColor = "yellow";
-                } else if (n.rssi > -80) {
-                    rssiColor = "red";
-                } else {
-                    rssiColor = "red";
-                }
-                return Object.assign(n, {securityValue, rssiColor}) as UINetworkItem;
-            });
-            if (JSON.stringify(newUiItems) != JSON.stringify(this.foundNetworks)) {
-                this.foundNetworks = newUiItems;
-                this.outlet.innerHTML = this.networksTemplate(this.foundNetworks);
-            }
-            return Promise.resolve(this.foundNetworks);
-        });
+    public start() {
+        console.log('Starting');
+        setInterval(() => this.readNetworkList(), 1500);
+    }
+
+    private renderNetworks(newNetworks: UINetworkItem[]) {
+        if (JSON.stringify(newNetworks) != JSON.stringify(this.foundNetworks)) {
+            this.foundNetworks = newNetworks;
+            this.outlet.innerHTML = this.networksTemplate(this.foundNetworks);
+        }
     }
 
 
@@ -55,27 +50,54 @@ export class WifiManagerUi {
             return fetch('/api/networks')
                 .then((response) => response.json())
                 .then((data: INetworkItem[]) => {
-                    const grouped = data.reduce((map, item) => {
+                    const uiData: UINetworkItem[] = data.map((n) => {
+                        const securityValue = WifiSecurity[n.security];
+                        let level: number;
+                        let rssiColor: string;
+                        if (n.rssi > -67) {
+                            level = WifiLevel.GOOD;
+                            rssiColor = "#32CD32";
+                        } else if (n.rssi > -79) {
+                            level = WifiLevel.NORMAL;
+                            rssiColor = "#800000";
+                        } else if (n.rssi > -80) {
+                            level = WifiLevel.BAD;
+                            rssiColor = "#778899";
+                        } else {
+                            level = WifiLevel.UNUSABLE;
+                            rssiColor = "#800000";
+                        }
+                        return Object.assign(n, {securityValue, rssiColor, level}) as UINetworkItem;
+                    })
+                    const grouped = uiData.reduce((map, item) => {
                         if (!map.has(item.ssid)) {
                             map.set(item.ssid, []);
                         }
                         map.get(item.ssid)!.push(item);
                         return map;
-                    }, new Map<string, INetworkItem[]>);
+                    }, new Map<string, UINetworkItem[]>);
 
                     const sorted = Array.from(grouped.entries())
-                        .sort(([, v1], [, v2]) => {
-                            const sig1 = v1.map((i) => i.rssi);
-                            const sig2 = v2.map((i) => i.rssi);
-                            return UiUtils.mean(sig2) - UiUtils.mean(sig1);
+                        .sort(([n1, v1], [n2, v2]) => {
+                            const lev1 = v1.map((i) => i.level);
+                            const lev2 = v2.map((i) => i.level);
+                            const levelSort = Math.round(UiUtils.mean(lev1)) - Math.round(UiUtils.mean(lev2));
+                            if (levelSort !== 0) {
+                                return levelSort;
+                            } else if (n1 === "") {
+                                return 1;
+                            } else if (n2 === "") {
+                                return -1;
+                            } else {
+                                return n1.localeCompare(n2);
+                            }
                         });
                     const foundItems = sorted.map(([, v]) => v[0]);
-                    console.log("sorted", foundItems);
                     this.renderNetworks(foundItems);
                     return data;
                 })
                 .catch((e) => {
-                    console.error('Can not Mqtt read config', e)
+                    console.error('Can not fetch WIFI networks', e)
                 });
         });
     }

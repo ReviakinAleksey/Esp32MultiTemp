@@ -19,7 +19,14 @@
     </div>
     {{#each this}}
     <div class="grid">
-        <div>{{ this.ssid }}</div>
+        <div>
+            {{#if this.ssid}}
+            <button type="button" onclick="ui.connect('{{{ this.ssid }}}', {{{ this.security }}})">{{ this.ssid }}</button>
+            {{/if}}
+            {{#unless this.ssid}}
+            <button type="button" class="outline">UNKNOWN</button>
+            {{/unless}}
+        </div>
         <div style="color: {{ this.rssiColor }}">{{ this.rssi }}📶</div>
         <div>{{ this.securityValue }}</div>
         <div>
