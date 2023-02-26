@@ -1,4 +1,4 @@
-import {INetworkItem, WifiSecurity} from "./types";
+import {ConnectResponse, INetworkItem, WifiSecurity} from "./types";
 import {UiUtils} from "./utils";
 import * as Handlebars from "handlebars";
 
@@ -15,27 +15,49 @@ interface UINetworkItem extends INetworkItem {
     rssiColor: string;
 }
 
+interface INetworkConfig {
+    ssid: string,
+    password?: string
+};
+
 export class WifiManagerUi {
 
     private currentTask: Promise<unknown> = Promise.resolve();
 
     private foundNetworks: UINetworkItem[] = [];
     private outlet: HTMLDivElement;
+    private actionsOutlet: HTMLDivElement;
     private networksTemplate: Handlebars.TemplateDelegate<UINetworkItem[]>;
+    private actionsTemplate: Handlebars.TemplateDelegate<INetworkConfig>;
+    private successNetwork?: INetworkConfig = undefined;
 
     public constructor() {
         this.outlet = UiUtils.findByIdStrict("content-outlet");
+        this.actionsOutlet = UiUtils.findByIdStrict("actions-outlet");
         this.networksTemplate = Handlebars.compile(UiUtils.findByIdStrict("networks-template").innerHTML);
+        this.actionsTemplate = Handlebars.compile(UiUtils.findByIdStrict("actions-template").innerHTML);
     }
 
-    public connect(ssid: unknown, security: unknown) {
+    public start() {
+        console.log('Starting');
+        setInterval(() => this.readNetworkList(), 1500);
+    }
+
+    public saveAndReboot() {
+        if (this.successNetwork) {
+
+        }
+    }
+
+    public connect(ssid: string, security: number) {
         let password: string | undefined = undefined;
         if (security != 0) {
             const promtResult = window.prompt("Please enter WIFI password");
             password = promtResult ? promtResult : undefined;
         }
         const connectData = {ssid, password};
-
+        this.clearActions();
+        this.successNetwork = undefined;
         return this.runTask(() => {
                 return fetch('/api/connect', {
                         method: 'POST',
@@ -47,17 +69,17 @@ export class WifiManagerUi {
                     }
                 )
                     .then((response) => response.json())
-                    .then((data) => {
-                        console.log("OMF", data);
-                        return data;
+                    .then((cr: ConnectResponse) => {
+                        if (cr.connected) {
+                            this.successNetwork = {ssid, password};
+                            this.renderActions();
+                        } else {
+                            window.alert(`Failed to connect to ${ssid}`);
+                        }
+                        return cr;
                     });
             }
         );
-    }
-
-    public start() {
-        console.log('Starting');
-        setInterval(() => this.readNetworkList(), 1500);
     }
 
     private renderNetworks(newNetworks: UINetworkItem[]) {
@@ -65,6 +87,16 @@ export class WifiManagerUi {
             this.foundNetworks = newNetworks;
             this.outlet.innerHTML = this.networksTemplate(this.foundNetworks);
         }
+    }
+
+    private renderActions() {
+        if (this.successNetwork) {
+            this.actionsOutlet.innerHTML = this.actionsTemplate(this.successNetwork);
+        }
+    }
+
+    private clearActions() {
+        this.actionsOutlet.innerHTML = "";
     }
 
 

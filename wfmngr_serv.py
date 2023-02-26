@@ -46,17 +46,33 @@ class WifiManager:
 
     async def http_connect(self, request):
         data = request.json
+        ssid = data["ssid"]
+        password = data.get("password")
         connected = False
         if DEV_MODE:
-            ap.connect(data["ssid"], data.get("password"))
             time.sleep(2)
-            connected = ap.isconnected()
+            return {connected: True, "ssid": ssid, "status": network.STAT_GOT_IP, "ip": ap.ifconfig()[0]}
         else:
-            self.wlan.active(False)
+            print("Connecting", ssid, password)
             self.wlan.active(True)
-            # TODO: Check connection
+            self.wlan.connect(ssid, password)  # connect to an AP
+            last_status = 999999
+            connected = False
+            for retry in range(40):
+                connected = self.wlan.isconnected()
+                last_status = self.wlan.status()
+                print("Status", last_status, connected, ssid, password)
+                if connected:
+                    break
+                time.sleep(0.5)
             self.wlan.active(False)
-        return {"connected": connected}
+            gc.collect()
+            if connected:
+                rsp = {connected: True, "ssid": ssid, "status": last_status, "ip": self.wlan.ifconfig()[0]}
+                # save_settings(data)
+            else:
+                rsp = {"connected": False, "ssid": ssid, "status": last_status}
+            return rsp
 
     def start(self):
         self.wlan = network.WLAN(network.STA_IF)

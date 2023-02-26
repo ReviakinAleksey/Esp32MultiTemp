@@ -19,3 +19,19 @@ export interface INetworkItem {
     ssid: string;
     bssid: string;
 }
+
+
+export interface IConnectSuccess {
+    connected: true;
+    ssid: string;
+    status: number;
+    ip: string;
+}
+
+export interface IConnectFailed {
+    connected: false;
+    ssid: string;
+    status: number;
+}
+
+export type ConnectResponse = IConnectSuccess | IConnectFailed;

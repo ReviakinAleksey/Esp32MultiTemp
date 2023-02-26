@@ -7,8 +7,20 @@
 </head>
 <body>
 <main class="container">
+    <div id="actions-outlet"></div>
     <div id="content-outlet"></div>
 </main>
+
+<script id="actions-template" type="text/x-handlebars-template">
+    <div class="grid">
+        <div></div>
+        <div>
+            <button type="button" onclick="ui.saveAndReboot()">Use {{ this.ssid }} network and reboot to operation mode</button>
+        </div>
+        <div></div>
+    </div>
+</script>
+
 
 <script id="networks-template" type="text/x-handlebars-template">
     <div class="grid">
