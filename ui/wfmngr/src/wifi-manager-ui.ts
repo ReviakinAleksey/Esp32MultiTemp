@@ -43,17 +43,34 @@ export class WifiManagerUi {
         setInterval(() => this.readNetworkList(), 1500);
     }
 
-    public saveAndReboot() {
-        if (this.successNetwork) {
-
-        }
+    public saveAndReboot(): Promise<unknown> {
+        return this.runTask(() => {
+                return fetch('/api/apply', {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(this.successNetwork)
+                    }
+                )
+                    .then((response) => response.json())
+                    .then((res: { "ok": boolean }) => {
+                        window.alert("Config was applied, board will be rebooted")
+                        return res;
+                    });
+            }
+        );
     }
 
-    public connect(ssid: string, security: number) {
+    public connect(ssid: string, security: number): Promise<unknown> {
         let password: string | undefined = undefined;
         if (security != 0) {
-            const promtResult = window.prompt("Please enter WIFI password");
-            password = promtResult ? promtResult : undefined;
+            const promptResult = window.prompt("Please enter WIFI password");
+            if (!promptResult) {
+                return Promise.resolve();
+            }
+            password = promptResult;
         }
         const connectData = {ssid, password};
         this.clearActions();
@@ -82,25 +99,25 @@ export class WifiManagerUi {
         );
     }
 
-    private renderNetworks(newNetworks: UINetworkItem[]) {
+    private renderNetworks(newNetworks: UINetworkItem[]): void {
         if (JSON.stringify(newNetworks) != JSON.stringify(this.foundNetworks)) {
             this.foundNetworks = newNetworks;
             this.outlet.innerHTML = this.networksTemplate(this.foundNetworks);
         }
     }
 
-    private renderActions() {
+    private renderActions(): void {
         if (this.successNetwork) {
             this.actionsOutlet.innerHTML = this.actionsTemplate(this.successNetwork);
         }
     }
 
-    private clearActions() {
+    private clearActions(): void {
         this.actionsOutlet.innerHTML = "";
     }
 
 
-    private readNetworkList() {
+    private readNetworkList(): Promise<unknown> {
         return this.runTask(() => {
             return fetch('/api/networks')
                 .then((response) => response.json())

@@ -93,9 +93,9 @@ def mqtt_config_invalid(config):
     return False
 
 
-def schedule_reboot(after):
+def schedule_reboot(after_ms):
     tim0 = machine.Timer(0)
-    tim0.init(period=after, mode=machine.Timer.ONE_SHOT, callback=lambda t: machine.reset())
+    tim0.init(period=after_ms, mode=machine.Timer.ONE_SHOT, callback=lambda t: machine.reset())
 
 
 def config_name(config_name_base, profile=None):

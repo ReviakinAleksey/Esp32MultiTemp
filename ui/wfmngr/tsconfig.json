@@ -17,10 +17,6 @@
     "typeRoots": [
       "./node_modules/@types"
     ],
-    "types": [
-      "handlebars",
-      "plotly.js"
-    ]
   },
   "include": ["src"]
 }
