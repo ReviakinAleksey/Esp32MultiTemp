@@ -32,7 +32,7 @@ wifi_config = read_wifi_config(WIFI_PROFILE)
 # wifi_config = read_wifi_config("home")
 # wifi_config = read_wifi_config("work")
 if not wifi_config:
-    print("WIFI config error")
+    raise Exception("WIFI config not found")
 
 while True:
     display.fill_bg(st7789.BLACK)

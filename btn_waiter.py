@@ -27,9 +27,9 @@ async def count_down(message, seconds, state):
         await uasyncio.sleep_ms(1 * 1000)
 
 
-async def main(delay_seconds):
+async def main(message, delay_seconds):
     state = {"pressed": False}
-    count_wait = uasyncio.create_task(count_down(delay_seconds, state))
+    count_wait = uasyncio.create_task(count_down(message, delay_seconds, state))
     uasyncio.create_task(read_buttons_state(state))
     await count_wait
     return state["pressed"]
