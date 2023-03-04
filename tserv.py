@@ -12,7 +12,8 @@ import uasyncio
 from umqtt.simple import MQTTClient
 
 import display
-from app_config import write_sensors_config, read_sensors_config, write_mqtt_config, read_wifi_config, read_mqtt_config
+from app_config import write_sensors_config, read_sensors_config, write_mqtt_config, read_wifi_config, read_mqtt_config, remove_wifi_config, schedule_reboot
+from btn_waiter import wait_for_buttons
 from microdot_asyncio import Microdot, send_file
 
 # WIFI_PROFILE = "derenya"
@@ -26,7 +27,6 @@ EMA_COEF = 31
 EMA_MUL_CUR = 2
 EMA_MUL_LAST = 29
 
-display.write_text("Connecting to: {}".format(WIFI_PROFILE if WIFI_PROFILE is not None else "DEFAULT"), 1, 0)
 # write_wifi_config({"ssid": "Derevnya", "password": "giga net"}, WIFI_PROFILE)
 wifi_config = read_wifi_config(WIFI_PROFILE)
 # wifi_config = read_wifi_config("home")
@@ -34,29 +34,40 @@ wifi_config = read_wifi_config(WIFI_PROFILE)
 if not wifi_config:
     print("WIFI config error")
 
-print("Connecting to WIFI: {}".format(wifi_config["ssid"]))
-wlan_sta = network.WLAN(network.STA_IF)
-wlan_sta.active(False)
-wlan_sta.active(True)
+while True:
+    display.fill_bg(st7789.BLACK)
+    display.write_text("Connecting to: {}".format(wifi_config["ssid"]), 1, 0)
+    print("Connecting to WIFI: {}".format(wifi_config["ssid"]))
+    wlan_sta = network.WLAN(network.STA_IF)
+    wlan_sta.active(False)
+    wlan_sta.active(True)
 
-wlan_sta.connect(wifi_config["ssid"], wifi_config["password"])
+    wlan_sta.connect(wifi_config["ssid"], wifi_config["password"])
 
-ip_addr = None
-connected = False
-for retry in range(100):
-    connected = wlan_sta.isconnected()
+    ip_addr = None
+    connected = False
+    for retry in range(100):
+        connected = wlan_sta.isconnected()
+        if connected:
+            break
+        time.sleep(0.1)
+
     if connected:
+        ip_addr = wlan_sta.ifconfig()[0]
+        print("Wifi IP:", ip_addr)
+        display.write_text("Connected to: {}".format(wifi_config["ssid"]), 1, 0)
+        display.write_text("http://{}".format(ip_addr), 1, 1)
         break
-    time.sleep(0.1)
+    else:
+        display.write_text("Failed connection to: {}".format(wifi_config["ssid"]), 1, 0, st7789.RED)
+        display.write_text("Wait 5s to retry", 1, 1, st7789.RED)
+        display.write_text("Press 2 and boot to config", 1, 2, st7789.RED)
+        should_reboot = wait_for_buttons(5)
 
-if connected:
-    ip_addr = wlan_sta.ifconfig()[0]
-    print("Wifi IP:", ip_addr)
-    display.write_text("Connected to: {}".format(wifi_config["ssid"]), 1, 0)
-    display.write_text("http://{}".format(ip_addr), 1, 1)
-else:
-    display.write_text("Failed connection to: {}".format(wifi_config["ssid"]), 1, 0, st7789.RED)
-    display.write_text("Press 2 and boot to config", 1, 1, st7789.RED)
+        if should_reboot:
+            display.fill_bg(st7789.BLACK)
+            remove_wifi_config(WIFI_PROFILE)
+            schedule_reboot(1)
 
 ntptime.settime()
 print("UNIX TIME:", time.time() + UNIX_TIME_CORRECTION)

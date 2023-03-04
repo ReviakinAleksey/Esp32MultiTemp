@@ -1,6 +1,11 @@
 import json
+import os
 
 import machine
+
+
+def remove_wifi_config(profile):
+    os.remove(wifi_file_name(profile))
 
 
 def write_sensors_config(data):
