@@ -7,17 +7,18 @@ import machine
 import network
 import ntptime
 import onewire
+import st7789
 import uasyncio
 from umqtt.simple import MQTTClient
 
-from app_config import write_sensors_config, read_sensors_config, write_mqtt_config, read_wifi_config, write_wifi_config, read_mqtt_config
-from microdot_asyncio import Microdot, send_file
 import display
-import st7789
+from app_config import write_sensors_config, read_sensors_config, write_mqtt_config, read_wifi_config, read_mqtt_config
+from microdot_asyncio import Microdot, send_file
 
 # WIFI_PROFILE = "derenya"
 # WIFI_PROFILE = "home"
-WIFI_PROFILE = "work"
+# WIFI_PROFILE = "work"
+WIFI_PROFILE = None
 
 UNIX_TIME_CORRECTION = 946684800
 
@@ -25,7 +26,7 @@ EMA_COEF = 31
 EMA_MUL_CUR = 2
 EMA_MUL_LAST = 29
 
-display.write_text("Connecting to: {}".format(WIFI_PROFILE),1, 0)
+display.write_text("Connecting to: {}".format(WIFI_PROFILE if WIFI_PROFILE is not None else "DEFAULT"), 1, 0)
 # write_wifi_config({"ssid": "Derevnya", "password": "giga net"}, WIFI_PROFILE)
 wifi_config = read_wifi_config(WIFI_PROFILE)
 # wifi_config = read_wifi_config("home")
@@ -51,8 +52,11 @@ for retry in range(100):
 if connected:
     ip_addr = wlan_sta.ifconfig()[0]
     print("Wifi IP:", ip_addr)
-    display.write_text("Connected to: {}".format(WIFI_PROFILE),1, 0)
-    display.write_text("http://{}".format(ip_addr),1, 1)
+    display.write_text("Connected to: {}".format(wifi_config["ssid"]), 1, 0)
+    display.write_text("http://{}".format(ip_addr), 1, 1)
+else:
+    display.write_text("Failed connection to: {}".format(wifi_config["ssid"]), 1, 0, st7789.RED)
+    display.write_text("Press 2 and boot to config", 1, 1, st7789.RED)
 
 ntptime.settime()
 print("UNIX TIME:", time.time() + UNIX_TIME_CORRECTION)
@@ -70,6 +74,7 @@ def file_exists(path_to_file):
         return (os.stat(path_to_file)[0] & 0x4000) == 0
     except OSError:
         return False
+
 
 class TServ3:
     def __init__(self):
@@ -153,7 +158,7 @@ class TServ3:
         for data in sorted(unordered, key=lambda data: data[0]):
             self.sensors_list[real_sid] = data[1]
             real_sid += 1
-        display.write_text("Found {} sensors".format(len(self.sensors_list)),1, 3)
+        display.write_text("Found {} sensors".format(len(self.sensors_list)), 1, 3)
         self.prev_results = {}
         self.ema_results = []
         gc.collect()
@@ -229,7 +234,7 @@ class TServ3:
                         value = ((EMA_MUL_CUR * value) + (EMA_MUL_LAST * step_results[sid])) / EMA_COEF
                     self.ema_results.append((sid, round(value / 100.0, 2)))
                     self.prev_results[sid] = value
-                display.write_text("Max: {} on {}    ".format(max_value, max_id),1, 4, st7789.RED)
+                display.write_text("Max: {} on {}    ".format(max_value, max_id), 1, 4, st7789.RED)
                 await uasyncio.sleep_ms(2000)
 
     def clear_ema_results(self):
