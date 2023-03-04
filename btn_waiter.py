@@ -19,10 +19,10 @@ async def read_buttons_state(state):
             state["pressed"] = False
 
 
-async def count_down(seconds, state):
+async def count_down(message, seconds, state):
     left = seconds
     while left > 0 and state["pressed"] == False:
-        print("Booting after: {}s (press 2 buttons to cancel)".format(left))
+        print("{} {}s (press 2 buttons to cancel)".format(message, left))
         left -= 1
         await uasyncio.sleep_ms(1 * 1000)
 
@@ -35,5 +35,5 @@ async def main(delay_seconds):
     return state["pressed"]
 
 
-def wait_for_buttons(delay_seconds):
-    return uasyncio.run(main(delay_seconds))
+def wait_for_buttons(message, delay_seconds):
+    return uasyncio.run(main(message, delay_seconds))

@@ -4,7 +4,7 @@ import os
 from app_config import read_wifi_config
 from btn_waiter import wait_for_buttons
 
-boot_to_interpreter = wait_for_buttons(10)
+boot_to_interpreter = wait_for_buttons("Booting after:", 10)
 gc.collect()
 
 if not boot_to_interpreter:

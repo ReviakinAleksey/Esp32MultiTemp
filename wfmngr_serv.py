@@ -84,6 +84,7 @@ class WifiManager:
     async def save_and_restart(self, request):
         data = request.json
         write_wifi_config(data)
+        display.fill_bg(st7789.BLACK)
         schedule_reboot(2000)
         return {"ok": True}
 

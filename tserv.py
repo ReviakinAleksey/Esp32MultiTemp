@@ -61,8 +61,8 @@ while True:
     else:
         display.write_text("Failed connection to: {}".format(wifi_config["ssid"]), 1, 0, st7789.RED)
         display.write_text("Wait 5s to retry", 1, 1, st7789.RED)
-        display.write_text("Press 2 and boot to config", 1, 2, st7789.RED)
-        should_reboot = wait_for_buttons(5)
+        display.write_text("Press 2 buttons force boot to config", 1, 2, st7789.RED)
+        should_reboot = wait_for_buttons("Retry after:", 5)
 
         if should_reboot:
             display.fill_bg(st7789.BLACK)
