@@ -151,15 +151,16 @@ export class WifiManagerUi {
 
                     const sorted = Array.from(grouped.entries())
                         .sort(([n1, v1], [n2, v2]) => {
+                            if (n1 === "") {
+                                return 1;
+                            } else if (n2 === "") {
+                                return -1;
+                            }
                             const lev1 = v1.map((i) => i.level);
                             const lev2 = v2.map((i) => i.level);
                             const levelSort = Math.round(UiUtils.mean(lev1)) - Math.round(UiUtils.mean(lev2));
                             if (levelSort !== 0) {
                                 return levelSort;
-                            } else if (n1 === "") {
-                                return 1;
-                            } else if (n2 === "") {
-                                return -1;
                             } else {
                                 return n1.localeCompare(n2);
                             }
