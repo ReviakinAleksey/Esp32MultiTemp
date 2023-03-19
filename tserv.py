@@ -12,9 +12,11 @@ import uasyncio
 from umqtt.simple import MQTTClient
 
 import display
-from app_config import write_sensors_config, read_sensors_config, write_mqtt_config, read_wifi_config, read_mqtt_config, remove_wifi_config, schedule_reboot
+from app_config import write_sensors_config, read_sensors_config, write_mqtt_config, read_wifi_config, read_mqtt_config, remove_wifi_config, schedule_reboot, file_exists
 from btn_waiter import wait_for_buttons
 from microdot_asyncio import Microdot, send_file
+
+UI_DIST_LOCATION = 'ui_temp'
 
 # WIFI_PROFILE = "derenya"
 # WIFI_PROFILE = "home"
@@ -80,13 +82,6 @@ def rom_addr(ba):
     return addr
 
 
-def file_exists(path_to_file):
-    try:
-        return (os.stat(path_to_file)[0] & 0x4000) == 0
-    except OSError:
-        return False
-
-
 class TServ3:
     def __init__(self):
         self.ds = None
@@ -127,11 +122,11 @@ class TServ3:
         return self.mqtt_config
 
     async def http_api_static(self, request, path):
-        resource_file = '/ui_temp/{}'.format(path)
+        resource_file = '/{}/{}'.format(UI_DIST_LOCATION, path)
         if file_exists(resource_file):
             return send_file(resource_file)
         else:
-            return send_file('/ui_temp/index.html')
+            return send_file('/%s/index.html' % UI_DIST_LOCATION)
 
     def start(self):
         self.http = Microdot()

@@ -4,6 +4,13 @@ import os
 import machine
 
 
+def file_exists(path_to_file):
+    try:
+        return (os.stat(path_to_file)[0] & 0x4000) == 0
+    except OSError:
+        return False
+
+
 def remove_wifi_config(profile):
     os.remove(wifi_file_name(profile))
 

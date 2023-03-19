@@ -6,12 +6,15 @@ import st7789
 import uasyncio
 
 import display
-from app_config import write_wifi_config, schedule_reboot
-from microdot_asyncio import Microdot
+from app_config import write_wifi_config, schedule_reboot, file_exists
+from microdot_asyncio import Microdot, send_file
+from time import sleep
+
+UI_DIST_LOCATION = 'ui_mngr'
 
 AP_NAME = "ESP-AP"
 
-DEV_MODE = True
+DEV_MODE = False
 
 display.fill_bg(st7789.RED)
 display.write_text("Initializing", 1, 0, st7789.WHITE)
@@ -20,7 +23,7 @@ display.write_text("WIFI", 1, 1, st7789.WHITE)
 if DEV_MODE:
     ap = network.WLAN(network.STA_IF)
     ap.active(True)
-    ap.connect("Area 51C", "giga ukr")
+    ap.connect("YOUR_PASSWORD", "YOUR_PASSWORD")
 else:
     ap = network.WLAN(network.AP_IF)  # create access-point interface
     ap.config(ssid=AP_NAME)  # set the SSID of the access point
@@ -42,6 +45,14 @@ class WifiManager:
         self.wlan = None
         self.connecting = False
         self.networks = []
+        self.stop = False
+
+    async def http_api_static(self, request, path):
+        resource_file = '/{}/{}'.format(UI_DIST_LOCATION, path)
+        if file_exists(resource_file):
+            return send_file(resource_file)
+        else:
+            return send_file('/{}/index.html'.format(UI_DIST_LOCATION))
 
     async def http_networks(self, request):
         return self.networks
@@ -59,17 +70,18 @@ class WifiManager:
                 rsp = {"connected": True, "ssid": ssid, "status": network.STAT_GOT_IP, "ip": ap.ifconfig()[0]}
             else:
                 print("Connecting", ssid, password)
+                self.wlan.active(False)
                 self.wlan.active(True)
                 self.wlan.connect(ssid, password)  # connect to an AP
                 last_status = 999999
                 connected = False
-                for retry in range(40):
+                for retry in range(20):
                     connected = self.wlan.isconnected()
                     last_status = self.wlan.status()
                     print("Status", last_status, connected, ssid, password)
                     if connected:
                         break
-                    await uasyncio.sleep_ms(500)
+                    sleep(0.5)
                 self.wlan.active(False)
                 gc.collect()
                 if connected:
@@ -86,6 +98,7 @@ class WifiManager:
         write_wifi_config(data)
         display.fill_bg(st7789.BLACK)
         schedule_reboot(2000)
+        self.stop = True
         return {"ok": True}
 
     def start(self):
@@ -94,13 +107,17 @@ class WifiManager:
         self.http.route("/api/networks")(self.http_networks)
         self.http.route("/api/connect", methods=['POST'])(self.http_connect)
         self.http.route("/api/apply", methods=['POST'])(self.save_and_restart)
+        self.http.route("<re:.*:path>")(self.http_api_static)
 
     async def main_loop(self):
         uasyncio.create_task(self.wifi_loop())
         await self.http.start_server(port=80)
 
     async def wifi_loop(self):
-        while True:
+        while not self.stop:
+            if self.connecting:
+                continue
+            print("Scanning......")
             gc.collect()
             # create station interface
             if DEV_MODE:

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WIFI Manager</title>
+  <script type="module" crossorigin src="/assets/index-268669a0.js"></script>
+  <link rel="stylesheet" href="/assets/index-9aae83b4.css">
+</head>
+<body>
+<main class="container">
+    <div id="actions-outlet"></div>
+    <div id="content-outlet"></div>
+</main>
+
+<script id="actions-template" type="text/x-handlebars-template">
+    <div class="grid">
+        <div></div>
+        <div>
+            <button type="button" onclick="ui.saveAndReboot()">Use {{ this.ssid }} network and reboot to operation mode</button>
+        </div>
+        <div></div>
+    </div>
+</script>
+
+
+<script id="networks-template" type="text/x-handlebars-template">
+    <div class="grid">
+        <div>SSID</div>
+        <div>Signal</div>
+        <div>Security</div>
+        <div>Hidden</div>
+    </div>
+    {{#each this}}
+    <div class="grid">
+        <div>
+            {{#if this.ssid}}
+            <button type="button" onclick="ui.connect('{{{ this.ssid }}}', {{{ this.security }}})">{{ this.ssid }}</button>
+            {{/if}}
+            {{#unless this.ssid}}
+            <button type="button" class="outline">UNKNOWN</button>
+            {{/unless}}
+        </div>
+        <div style="color: {{ this.rssiColor }}">{{ this.rssi }}📶</div>
+        <div>{{ this.securityValue }}</div>
+        <div>
+            {{#if this.hidden}}
+            👻
+            {{/if}}
+        </div>
+    </div>
+    {{/each}}
+</script>
+
+</body>
+</html>
